@@ -5,7 +5,7 @@
 #   http://www.youtube.com/watch?v=f6kdp27TYZs
 #   http://code.google.com/p/go/source/browse/2012/concurrency.slide?repo=talks
 
-from chan import Chan, chanselect, quickthread
+from chan import Chan, select, go
 
 from collections import namedtuple
 from collections import OrderedDict
@@ -31,7 +31,7 @@ def example_fan_in():
                 i += 1
 
         c = Chan()
-        quickthread(sender, message, c)
+        go(sender, message, c)
         return c
 
     def fan_in(input1, input2):
@@ -40,8 +40,8 @@ def example_fan_in():
                 output.put(input.get())
 
         c = Chan()
-        quickthread(forwarder, input1, c)
-        quickthread(forwarder, input2, c)
+        go(forwarder, input1, c)
+        go(forwarder, input2, c)
         return c
 
     c = fan_in(boring("Joe"), boring("Ann"))
@@ -70,7 +70,7 @@ def example_sequence():
                 time.sleep(0.2 * random.random())
                 wait_for_it.get()
                 i += 1
-        quickthread(sender)
+        go(sender)
         return c
 
     def fan_in(*input_list):
@@ -80,7 +80,7 @@ def example_sequence():
 
         c = Chan()
         for input in input_list:
-            quickthread(forward, input, c)
+            go(forward, input, c)
         return c
 
     c = fan_in(boring('Joe'), boring('Ann'))
@@ -108,7 +108,7 @@ def example_select():
                 c.put("%s: %d" % (msg, i))
                 time.sleep(1.0 * random.random())
                 i += 1
-        quickthread(sender)
+        go(sender)
         return c
 
     def fan_in(input1, input2):
@@ -116,10 +116,10 @@ def example_select():
 
         def forward():
             while True:
-                chan, value = chanselect([input1, input2], [])
+                chan, value = select([input1, input2], [])
                 c.put(value)
 
-        quickthread(forward)
+        go(forward)
         return c
 
     c = fan_in(boring("Joe"), boring("Ann"))
@@ -139,7 +139,7 @@ def timer(duration):
         time.sleep(duration)
         chan.put(time.time())
     c = Chan()
-    quickthread(timer_thread, c, duration)
+    go(timer_thread, c, duration)
     return c
 
 
@@ -153,12 +153,12 @@ def example_timeout():
                 c.put("%s: %d" % (msg, i))
                 time.sleep(1.5 * random.random())
                 i += 1
-        quickthread(sender)
+        go(sender)
         return c
 
     c = boring("Joe")
     while True:
-        chan, value = chanselect([c, timer(1.0)], [])
+        chan, value = select([c, timer(1.0)], [])
         if chan == c:
             print value
         else:
@@ -181,11 +181,11 @@ def example_rcvquit():
             while True:
                 time.sleep(1.0 * random.random())
 
-                chan, _ = chanselect([quit], [(c, "%s: %d" % (msg, i))])
+                chan, _ = select([quit], [(c, "%s: %d" % (msg, i))])
                 if chan == quit:
                     quit.put("See you!")
                 i += 1
-        quickthread(sender)
+        go(sender)
         return c
 
     quit = Chan()
@@ -212,12 +212,12 @@ def example_daisy():
     left = leftmost
     for i in xrange(N):
         right = Chan()
-        quickthread(f, left, right)
+        go(f, left, right)
         left = right
 
     def putter():
         right.put(1)
-    quickthread(putter)
+    go(putter)
 
     print leftmost.get()
 

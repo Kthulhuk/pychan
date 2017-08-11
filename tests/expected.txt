@@ -1,0 +1,68 @@
+>>>\ Starting\ test\ (main.)?read\ <<<\n
+Writing\ 42\ to\ ch1\n
+Waited\ 1.00[0-9]*(s)?\n
+>>>\ Test\ (main.)?read\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?read_default\ <<<\n
+(
+    (Selected\ default\ behavior\n)+
+    Writing\ 42\ to\ ch1\n
+    (Selected\ default\ behavior\n)*
+        |
+    Writing\ 42\ to\ ch1\n
+    (Selected\ default\ behavior\n)+
+)
+Received\ number\ 42\ from\ ch1\ after\ [0-9]*.[0-9]*(µs)?\n
+>>>\ Test\ (main.)?read_default\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?read_read\ <<<\n
+Writing\ (42|51)\ to\ ch(1|2)\n
+Writing\ (42|51)\ to\ ch(1|2)\n
+Received\ number\ (42|51)\ from\ ch(1|2)\n
+>>>\ Test\ (main.)?read_read\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?read_read_default\ <<<\n
+Writing\ (42|51)\ to\ ch(1|2)\n
+Writing\ (42|51)\ to\ ch(1|2)\n
+Received\ number\ (42|51)\ from\ ch(1|2)\n
+>>>\ Test\ (main.)?read_read_default\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?read_write\ <<<\n
+(Writing\ 42\ to\ ch1|Reading\ from\ ch2)\n
+(Writing\ 42\ to\ ch1|Reading\ from\ ch2)\n
+(Received\ number\ 42\ from\ ch1|Sent\ number\ 51\ to\ ch2)\n
+>>>\ Test\ (main.)?read_write\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?read_write_default\ <<<\n
+(Writing\ 42\ to\ ch1|Reading\ from\ ch2)\n
+(Writing\ 42\ to\ ch1|Reading\ from\ ch2)\n
+(Received\ number\ 42\ from\ ch1|Sent\ number\ 51\ to\ ch2)\n
+>>>\ Test\ (main.)?read_write_default\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?write_write\ <<<\n
+Reading\ from\ ch(1|2)\n
+Reading\ from\ ch(1|2)\n
+Sent\ number\ (42|51)\ to\ ch(1|2)\n
+>>>\ Test\ (main.)?write_write\ over\ <<<\n
+
+\n
+
+>>>\ Starting\ test\ (main.)?write_write_default\ <<<\n
+Reading\ from\ ch(1|2)\n
+Reading\ from\ ch(1|2)\n
+Sent\ number\ (42|51)\ to\ ch(1|2)\n
+>>>\ Test\ (main.)?write_write_default\ over\ <<<\n
+
+\n

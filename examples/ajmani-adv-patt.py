@@ -10,7 +10,7 @@ import random
 import threading
 import time
 
-from chan import Chan, chanselect, quickthread
+from chan import Chan, select, go
 
 
 MOCK_POSTS = [
@@ -72,7 +72,7 @@ class Subscription(object):
             else:
                 outchans = []
 
-            ch, value = chanselect([self.quit, start_fetch], outchans)
+            ch, value = select([self.quit, start_fetch], outchans)
             if ch == self.quit:
                 errc = value
                 self.updates_chan.close()
@@ -119,7 +119,7 @@ class Merged(object):
     def _run(self):
         subchans = [sub.updates() for sub in self.subscriptions]
         while True:
-            c, value = chanselect(subchans + [self.quit], [])
+            c, value = select(subchans + [self.quit], [])
             if c == self.quit:
                 value.put(self._close_subs_collect_errs())
                 self.updates_chan.close()
@@ -127,7 +127,7 @@ class Merged(object):
             else:
                 item = value
 
-            c, _ = chanselect([self.quit], [(self.updates_chan, item)])
+            c, _ = select([self.quit], [(self.updates_chan, item)])
             if c == self.quit:
                 value.put(self._close_subs_collect_errs())
                 self.updates_chan.close()
@@ -159,7 +159,7 @@ def main():
     def close_later():
         time.sleep(3)
         print("Closed: {}".format(merged.close()))
-    quickthread(close_later)
+    go(close_later)
 
     for it in merged.updates():
         print("{} -- {}".format(it.channel, it.title))

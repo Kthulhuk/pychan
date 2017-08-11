@@ -17,7 +17,7 @@ setup(
     author_email='stuglaser@gmail.com',
     url='http://github.com/stuglaser/pychan',
     long_description=README,
-    keywords='go chan channel select chanselect concurrency',
+    keywords='go chan channel select concurrency',
     license='BSD',
     packages=['chan'],
     classifiers=[

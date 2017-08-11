@@ -3,7 +3,7 @@ import threading
 import time
 import unittest
 
-from chan import Chan, chanselect, quickthread
+from chan import Chan, select, go
 from chan import ChanClosed, Timeout
 from chan.chan import RingBuffer
 
@@ -19,12 +19,12 @@ def distributer(inchans, outchans, delay_max=0.5):
     inchans = inchans[:]  # Copy.  Will remove closed chans
     while True:
         try:
-            _, value = chanselect(inchans, [])
+            _, value = select(inchans, [])
             time.sleep(random.random() * delay_max)
         except ChanClosed as ex:
             inchans.remove(ex.which)
             continue
-        _, _ = chanselect([], [(chan, value) for chan in outchans])
+        _, _ = select([], [(chan, value) for chan in outchans])
 
 
 def accumulator(chan, into=None):
@@ -59,7 +59,7 @@ class ChanTests(unittest.TestCase):
     def test_simple(self):
         chan = Chan()
         results = []
-        quickthread(accumulator, chan, results)
+        go(accumulator, chan, results)
 
         chan.put("Hello")
         time.sleep(0.01)  # Technically unsafe
@@ -72,25 +72,25 @@ class ChanTests(unittest.TestCase):
         firstchan = Chan()
         chan_layer1 = [Chan() for i in range(6)]
         lastchan = Chan()
-        sayer = quickthread(sayset, firstchan, phrases, delay=0.001,
+        sayer = go(sayset, firstchan, phrases, delay=0.001,
                             __name='sayer')
 
         # Distribute firstchan -> chan_layer1
         for i in range(12):
             outchans = [chan_layer1[(i+j) % len(chan_layer1)]
                         for j in range(3)]
-            quickthread(distributer, [firstchan], outchans, delay_max=0.005,
+            go(distributer, [firstchan], outchans, delay_max=0.005,
                         __name='dist_layer1_%02d' % i)
 
         # Distribute chan_layer1 -> lastchan
         for i in range(12):
             inchans = [chan_layer1[(i+j) % len(chan_layer1)]
                        for j in range(0, 9, 3)]
-            quickthread(distributer, inchans, [lastchan], delay_max=0.005,
+            go(distributer, inchans, [lastchan], delay_max=0.005,
                         __name='dist_layer2_%02d' % i)
 
         results = []
-        quickthread(accumulator, lastchan, results, __name='accumulator')
+        go(accumulator, lastchan, results, __name='accumulator')
         sayer.join(10)
         self.assertFalse(sayer.is_alive())
         time.sleep(1)  # Unsafe.  Lets the data propagate to the accumulator
@@ -101,7 +101,7 @@ class ChanTests(unittest.TestCase):
 
     def test_iter_and_closed(self):
         c = Chan()
-        quickthread(sayset, c, [1, 2, 3], delay=0)
+        go(sayset, c, [1, 2, 3], delay=0)
 
         def listener():
             it = iter(c)
@@ -109,7 +109,7 @@ class ChanTests(unittest.TestCase):
             self.assertEqual(next(it), 2)
             self.assertEqual(next(it), 3)
             self.assertRaises(StopIteration, it.__next__)
-        t = quickthread(listener)
+        t = go(listener)
 
         time.sleep(0.1)
         self.assertFalse(t.is_alive())
@@ -122,38 +122,38 @@ class ChanTests(unittest.TestCase):
         self.assertRaises(Timeout, c.get, timeout=0.01)
         self.assertRaises(Timeout, c.put, 'x', timeout=0)
 
-    def test_chanselect_timeout(self):
+    def test_select_timeout(self):
         a = Chan()
         b = Chan()
         c = Chan()
-        self.assertRaises(Timeout, chanselect, [a, b], [(c, 42)], timeout=0)
-        self.assertRaises(Timeout, chanselect, [a, b], [(c, 42)], timeout=0.01)
+        self.assertRaises(Timeout, select, [a, b], [(c, 42)], timeout=0)
+        self.assertRaises(Timeout, select, [a, b], [(c, 42)], timeout=0.01)
 
-        # Verifies that chanselect didn't leave any wishes lying around.
+        # Verifies that select didn't leave any wishes lying around.
         self.assertRaises(Timeout, a.put, 12, timeout=0)
         self.assertRaises(Timeout, c.get, timeout=0)
 
     def test_select_and_closed(self):
         a, b, c = [Chan() for _ in range(3)]
         out = Chan()
-        quickthread(sayset, a, [0, 1, 2], delay=0.01, __name='sayset1')
-        quickthread(sayset, b, [3, 4, 5], delay=0.01, __name='sayset2')
-        quickthread(sayset, c, [6, 7, 8], delay=0.01, __name='sayset2')
+        go(sayset, a, [0, 1, 2], delay=0.01, __name='sayset1')
+        go(sayset, b, [3, 4, 5], delay=0.01, __name='sayset2')
+        go(sayset, c, [6, 7, 8], delay=0.01, __name='sayset2')
 
         def fanin_until_closed(inchans, outchan):
             inchans = inchans[:]
             while inchans:
                 try:
-                    _, val = chanselect(inchans, [])
+                    _, val = select(inchans, [])
                     out.put(val)
                 except ChanClosed as ex:
                     inchans.remove(ex.which)
             out.close()
 
-        quickthread(fanin_until_closed, [a, b, c], out, __name='fanin')
+        go(fanin_until_closed, [a, b, c], out, __name='fanin')
 
         into = []
-        acc = quickthread(accumulator, out, into)
+        acc = go(accumulator, out, into)
         acc.join(10)
         self.assertFalse(acc.is_alive())
 
@@ -173,7 +173,7 @@ class ChanTests(unittest.TestCase):
 
     def test_buf_overfull(self):
         c = Chan(5)
-        quickthread(sayset, c, list(range(20)), delay=0)
+        go(sayset, c, list(range(20)), delay=0)
         time.sleep(0.1)  # Fill up buffer
 
         results = list(c)
@@ -181,7 +181,7 @@ class ChanTests(unittest.TestCase):
 
     def test_buf_kept_empty(self):
         c = Chan(5)
-        quickthread(sayset, c, list(range(20)), delay=0.02)
+        go(sayset, c, list(range(20)), delay=0.02)
         results = list(c)
         self.assertEqual(results, list(range(20)))
 

@@ -355,14 +355,14 @@ class Chan(object):
     next = __next__
 
 
-def chanselect(consumers, producers, timeout=None):
+def select(consumers, producers, timeout=None, default=False):
     """Returns when exactly one consume or produce operation succeeds.
 
     When this function returns, either a channel is closed, or one value has
     been pulled from the channels in ``consumers``, or one value has been
     pushed onto a channel in ``producers``.
 
-    ``chanselect`` returns different values depending on which channel was
+    ``select`` returns different values depending on which channel was
     ready first:
 
     - (:class:`Chan`, value) -- If a consume channel is first.
@@ -377,13 +377,17 @@ def chanselect(consumers, producers, timeout=None):
                     amount of time to block.  If no channel is ready by this
                     time, then a :class:`Timeout` error is raised.
 
+    :param default: A boolean indicating whether or not the select function has
+                    to return a default value if no channel is ready when
+                    select is called
+
     Here's a quick example.  Let's say we're waiting to receive on channels
     ``chan_a`` and ``chan_b``, and waiting to send on channels ``chan_c`` and
-    ``chan_d``.  The call to ``chanselect`` looks something like this:
+    ``chan_d``.  The call to ``select`` looks something like this:
 
     .. code-block:: python
 
-        ch, value = chanselect([chan_a, chan_b],
+        ch, value = select([chan_a, chan_b],
                                [(chan_c, 'C'), (chan_d, 'D')])
         if ch == chan_a:
             print("Got {} from A".format(value))
@@ -431,10 +435,15 @@ def chanselect(consumers, producers, timeout=None):
                 except Full:
                     pass
 
-        # If chanselect shouldn't block, then we can exit here, and shortcut
+        # If select shouldn't block, then we can exit here, and shortcut
         # adding wishes to other channels.
         if timeout is not None and timeout <= 0:
             raise Timeout()
+
+        # If we call select with a default clause, we don't need to wait
+        # for fulfillment
+        if default is True:
+            return 'default', None
 
         # Enqueues wishes, to wait for fulfillment
         for wish in group.wishes:
@@ -479,7 +488,7 @@ def chanselect(consumers, producers, timeout=None):
     return wish.chan, wish.value
 
 
-def quickthread(fn, *args, **kwargs):
+def go(fn, *args, **kwargs):
     name = kwargs.pop('__name', None)
     th = threading.Thread(
         name=name,

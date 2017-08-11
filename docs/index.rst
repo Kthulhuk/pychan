@@ -51,13 +51,13 @@ Iterating over a channel gives all values until the channel is closed
     for thing in c:
         print "Heard:", thing
 
-You can wait on multiple channels using :func:`chanselect`.  Pass it a list of input channels and another of output channels, and it will return when any of the channels is ready
+You can wait on multiple channels using :func:`select`.  Pass it a list of input channels and another of output channels, and it will return when any of the channels is ready
 
 .. code-block:: python
 
     def fan_in(outchan, input1, input2):
         while True:
-            chan, value = chanselect([input1, input2], [])
+            chan, value = select([input1, input2], [])
             if chan == input1:
                 outchan.put("From 1: " + str(value))
             else:

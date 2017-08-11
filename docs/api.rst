@@ -36,7 +36,7 @@ Chan Object
    :members:
 
 
-Multiplexing with ``chanselect``
+Multiplexing with ``select``
 --------------------------------
 
-.. autofunction:: chanselect
+.. autofunction:: select
